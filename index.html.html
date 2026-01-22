@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Local on 50th - Tip Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen p-4">
+    <div id="login-screen" class="max-w-md mx-auto mt-20">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-slate-800 mb-2">The Local on 50th</h1>
+                <p class="text-slate-600">Daily Tip Calculator</p>
+            </div>
+            <div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Enter Password</label>
+                    <input type="password" id="password-input" placeholder="Password"
+                        class="w-full px-4 py-3 border border-slate-300 rounded-lg text-lg" autofocus 
+                        onkeypress="if(event.key==='Enter') checkPassword()" />
+                    <p id="error-message" class="text-red-600 text-sm mt-2 hidden">Incorrect password. Please try again.</p>
+                </div>
+                <button onclick="checkPassword()" class="w-full bg-slate-800 text-white py-3 rounded-lg font-semibold text-lg hover:bg-slate-700">
+                    Access Calculator
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" style="display:none;" class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">The Local on 50th</h1>
+                    <p class="text-slate-600">Daily Tip Calculator & Report</p>
+                </div>
+                <div class="text-right">
+                    <input type="date" id="date-input" class="px-4 py-2 border border-slate-300 rounded-lg text-lg font-semibold" />
+                </div>
+            </div>
+
+            <div class="bg-slate-50 rounded-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-slate-800 mb-4">💵 Sales & Tips</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Total Sales</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <input type="number" step="0.01" id="total-sales" placeholder="0.00"
+                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Cash Sales</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <input type="number" step="0.01" id="cash-sales" placeholder="0.00"
+                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Credit Card Tips</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <input type="number" step="0.01" id="cc-tips" placeholder="0.00"
+                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Cash Tips</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <input type="number" step="0.01" id="cash-tips" placeholder="0.00"
+                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Total Host Tips</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <input type="number" step="0.01" id="host-tips" placeholder="0.00"
+                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-purple-50 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-slate-800">👥 Hosts (Keep 100% - Split Evenly)</h2>
+                    <button onclick="addEmployee('hosts')" class="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700">
+                        + Add Host
+                    </button>
+                </div>
+                <div id="hosts-list"></div>
+            </div>
+
+            <div class="bg-blue-50 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-slate-800">👥 Bussers (2% of Sales)</h2>
+                    <button onclick="addEmployee('bussers')" class="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                        + Add Busser
+                    </button>
+                </div>
+                <div id="bussers-list"></div>
+            </div>
+
+            <div class="bg-orange-50 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-slate-800">👥 Kitchen Staff (1% - Split Evenly)</h2>
+                    <button onclick="addEmployee('kitchen')" class="px-3 py-1 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700">
+                        + Add Kitchen
+                    </button>
+                </div>
+                <div id="kitchen-list"></div>
+            </div>
+
+            <div class="bg-green-50 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-slate-800">👥 Servers/Bartenders (FOH Pool)</h2>
+                    <button onclick="addEmployee('servers')" class="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
+                        + Add Server
+                    </button>
+                </div>
+                <div id="servers-list"></div>
+            </div>
+
+            <button onclick="calculateTips()" class="w-full bg-slate-800 text-white py-4 rounded-lg font-semibold text-lg hover:bg-slate-700">
+                🧮 Calculate Tips
+            </button>
+        </div>
+
+        <div id="results" style="display:none;" class="bg-white rounded-lg shadow-lg p-6"></div>
+    </div>
+
+    <script>
+        const CORRECT_PASSWORD = 'thelocal';
+        let employees = {
+            hosts: [{ name: '' }],
+            bussers: [{ name: '', hours: '' }],
+            kitchen: [{ name: '' }],
+            servers: [{ name: '', hours: '' }]
+        };
+
+        function checkPassword() {
+            const input = document.getElementById('password-input');
+            const error = document.getElementById('error-message');
+            
+            if (input.value === CORRECT_PASSWORD) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                initializeApp();
+            } else {
+                error.style.display = 'block';
+                input.classList.add('border-red-500', 'bg-red-50');
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function initializeApp() {
+            document.getElementById('date-input').valueAsDate = new Date();
+            renderEmployees('hosts');
+            renderEmployees('bussers');
+            renderEmployees('kitchen');
+            renderEmployees('servers');
+        }
+
+        function addEmployee(type) {
+            if (type === 'hosts' || type === 'kitchen') {
+                employees[type].push({ name: '' });
+            } else {
+                employees[type].push({ name: '', hours: '' });
+            }
+            renderEmployees(type);
+        }
+
+        function removeEmployee(type, index) {
+            if (employees[type].length > 1) {
+                employees[type].splice(index, 1);
+                renderEmployees(type);
+            }
+        }
+
+        function renderEmployees(type) {
+            const container = document.getElementById(`${type}-list`);
+            
+            if (type === 'hosts' || type === 'kitchen') {
+                const label = type === 'hosts' ? 'Host name' : 'Kitchen staff name';
+                container.innerHTML = employees[type].map((emp, idx) => `
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" value="${emp.name}" 
+                            onchange="employees['${type}'][${idx}].name = this.value"
+                            placeholder="${label}" 
+                            class="flex-1 px-4 py-2 border border-slate-300 rounded-lg" />
+                        ${employees[type].length > 1 ? `
+                            <button onclick="removeEmployee('${type}', ${idx})" 
+                                class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">×</button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = employees[type].map((emp, idx) => `
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" value="${emp.name}" 
+                            onchange="employees['${type}'][${idx}].name = this.value"
+                            placeholder="Employee name" 
+                            class="flex-1 px-4 py-2 border border-slate-300 rounded-lg" />
+                        <input type="number" step="0.01" value="${emp.hours}"
+                            onchange="employees['${type}'][${idx}].hours = this.value"
+                            placeholder="Hours" 
+                            class="w-24 px-4 py-2 border border-slate-300 rounded-lg" />
+                        ${employees[type].length > 1 ? `
+                            <button onclick="removeEmployee('${type}', ${idx})" 
+                                class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">×</button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            }
+        }
+
+        function calculateTips() {
+            // Get fresh values from inputs
+            const sales = parseFloat(document.getElementById('total-sales').value) || 0;
+            const ccTips = parseFloat(document.getElementById('cc-tips').value) || 0;
+            const cashTips = parseFloat(document.getElementById('cash-tips').value) || 0;
+            const hostTips = parseFloat(document.getElementById('host-tips').value) || 0;
+            const totalTips = ccTips + cashTips;
+
+            const busserPool = sales * 0.02;
+            const kitchenPool = sales * 0.01;
+            const fohPool = totalTips - hostTips - busserPool - kitchenPool;
+
+            // Get current employee data from the DOM inputs
+            const activeHosts = [];
+            document.querySelectorAll('#hosts-list input[type="text"]').forEach(input => {
+                if (input.value.trim()) {
+                    activeHosts.push({ name: input.value.trim() });
+                }
+            });
+
+            const activeBussers = [];
+            const busserNames = document.querySelectorAll('#bussers-list input[type="text"]');
+            const busserHours = document.querySelectorAll('#bussers-list input[type="number"]');
+            busserNames.forEach((nameInput, idx) => {
+                if (nameInput.value.trim() && busserHours[idx].value) {
+                    activeBussers.push({
+                        name: nameInput.value.trim(),
+                        hours: parseFloat(busserHours[idx].value)
+                    });
+                }
+            });
+
+            const activeKitchen = [];
+            document.querySelectorAll('#kitchen-list input[type="text"]').forEach(input => {
+                if (input.value.trim()) {
+                    activeKitchen.push({ name: input.value.trim() });
+                }
+            });
+
+            const activeServers = [];
+            const serverNames = document.querySelectorAll('#servers-list input[type="text"]');
+            const serverHours = document.querySelectorAll('#servers-list input[type="number"]');
+            serverNames.forEach((nameInput, idx) => {
+                if (nameInput.value.trim() && serverHours[idx].value) {
+                    activeServers.push({
+                        name: nameInput.value.trim(),
+                        hours: parseFloat(serverHours[idx].value)
+                    });
+                }
+            });
+
+            // Host tips split evenly
+            const tipPerHost = activeHosts.length > 0 ? hostTips / activeHosts.length : 0;
+
+            // Kitchen tips split evenly
+            const tipPerKitchen = activeKitchen.length > 0 ? kitchenPool / activeKitchen.length : 0;
+
+            // Calculate tip per hour for bussers and servers
+            const totalBusserHours = activeBussers.reduce((sum, b) => sum + b.hours, 0);
+            const busserTipPerHour = totalBusserHours > 0 ? busserPool / totalBusserHours : 0;
+
+            const totalServerHours = activeServers.reduce((sum, s) => sum + s.hours, 0);
+            const serverTipPerHour = totalServerHours > 0 ? fohPool / totalServerHours : 0;
+
+            const results = [
+                ...activeHosts.map(h => ({ name: h.name, role: 'Host', hours: 0, tips: tipPerHost })),
+                ...activeBussers.map(b => ({ name: b.name, role: 'Busser', hours: b.hours, tips: b.hours * busserTipPerHour })),
+                ...activeKitchen.map(k => ({ name: k.name, role: 'Kitchen', hours: 0, tips: tipPerKitchen })),
+                ...activeServers.map(s => ({ name: s.name, role: 'Server/Bartender', hours: s.hours, tips: s.hours * serverTipPerHour }))
+            ];
+
+            displayResults(results, hostTips, busserPool, kitchenPool, fohPool, totalTips);
+        }
+
+        function displayResults(results, hostTips, busserPool, kitchenPool, fohPool, totalTips) {
+            const container = document.getElementById('results');
+            container.innerHTML = `
+                <h2 class="text-2xl font-bold text-slate-800 mb-4">Tip Distribution Results</h2>
+                <div class="grid grid-cols-4 gap-4 mb-6 p-4 bg-slate-50 rounded-lg">
+                    <div>
+                        <p class="text-sm text-slate-600">Host Tips</p>
+                        <p class="text-2xl font-bold text-purple-600">${hostTips.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-600">Busser Pool (2%)</p>
+                        <p class="text-2xl font-bold text-blue-600">${busserPool.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-600">Kitchen Pool (1%)</p>
+                        <p class="text-2xl font-bold text-orange-600">${kitchenPool.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-600">FOH Pool</p>
+                        <p class="text-2xl font-bold text-green-600">${fohPool.toFixed(2)}</p>
+                    </div>
+                </div>
+                <div class="space-y-2 mb-6">
+                    ${results.map(emp => `
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <div>
+                                <p class="font-semibold text-slate-800">${emp.name}</p>
+                                <p class="text-sm text-slate-600">${emp.role}${emp.hours > 0 ? ` - ${emp.hours} hours` : ''}</p>
+                            </div>
+                            <p class="text-xl font-bold text-slate-800">${emp.tips.toFixed(2)}</p>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="flex justify-between items-center p-4 bg-slate-800 text-white rounded-lg mb-4">
+                    <p class="text-lg font-semibold">Total Tips Distributed</p>
+                    <p class="text-2xl font-bold">${(totalTips + hostTips).toFixed(2)}</p>
+                </div>
+                <button onclick="sendToGoogleSheets()" class="w-full bg-green-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-green-700">
+                    📊 Send to Google Sheets
+                </button>
+            `;
+            container.style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function sendToGoogleSheets() {
+            alert('Google Sheets integration will be configured next. For now, data is logged to console.');
+        }
+    </script>
+</body>
+</html>
