@@ -2,136 +2,165 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Local on 50th - Tip Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Mobile optimizations */
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        input[type="number"],
+        input[type="text"],
+        input[type="password"],
+        input[type="date"] {
+            font-size: 16px !important; /* Prevents zoom on iOS */
+        }
+        
+        button {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Larger touch targets for mobile */
+        @media (max-width: 768px) {
+            input, button {
+                min-height: 44px; /* Apple's recommended touch target */
+            }
+            
+            .grid {
+                gap: 1rem !important;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen p-4">
-    <div id="login-screen" class="max-w-md mx-auto mt-20">
-        <div class="bg-white rounded-lg shadow-lg p-8">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-slate-800 mb-2">The Local on 50th</h1>
-                <p class="text-slate-600">Daily Tip Calculator</p>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen p-2 sm:p-4">
+    <div id="login-screen" class="max-w-md mx-auto mt-10 sm:mt-20 px-4">
+        <div class="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+            <div class="text-center mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">The Local on 50th</h1>
+                <p class="text-sm sm:text-base text-slate-600">Daily Tip Calculator</p>
             </div>
             <div>
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-slate-700 mb-2">Enter Password</label>
                     <input type="password" id="password-input" placeholder="Password"
-                        class="w-full px-4 py-3 border border-slate-300 rounded-lg text-lg" autofocus 
+                        class="w-full px-4 py-3 border border-slate-300 rounded-lg text-base" autofocus 
                         onkeypress="if(event.key==='Enter') checkPassword()" />
                     <p id="error-message" class="text-red-600 text-sm mt-2 hidden">Incorrect password. Please try again.</p>
                 </div>
-                <button onclick="checkPassword()" class="w-full bg-slate-800 text-white py-3 rounded-lg font-semibold text-lg hover:bg-slate-700">
+                <button onclick="checkPassword()" class="w-full bg-slate-800 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-slate-700 active:bg-slate-900">
                     Access Calculator
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="main-app" style="display:none;" class="max-w-4xl mx-auto">
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div class="flex items-center justify-between mb-6">
+    <div id="main-app" style="display:none;" class="max-w-4xl mx-auto px-2 sm:px-4">
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
                 <div>
-                    <h1 class="text-3xl font-bold text-slate-800">The Local on 50th</h1>
-                    <p class="text-slate-600">Daily Tip Calculator & Report</p>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">The Local on 50th</h1>
+                    <p class="text-sm sm:text-base text-slate-600">Daily Tip Calculator & Report</p>
                 </div>
-                <div class="text-right">
-                    <input type="date" id="date-input" class="px-4 py-2 border border-slate-300 rounded-lg text-lg font-semibold" />
+                <div class="w-full sm:w-auto">
+                    <input type="date" id="date-input" class="w-full sm:w-auto px-3 sm:px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-lg font-semibold" />
                 </div>
             </div>
 
-            <div class="bg-slate-50 rounded-lg p-6 mb-6">
-                <h2 class="text-xl font-semibold text-slate-800 mb-4">💵 Sales & Tips</h2>
-                <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                <h2 class="text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4">💵 Sales & Tips</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Total Sales</label>
                         <div class="relative">
-                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <span class="absolute left-3 top-2.5 sm:top-2 text-slate-600 text-base sm:text-lg">$</span>
                             <input type="number" step="0.01" id="total-sales" placeholder="0.00"
-                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                                class="w-full pl-8 pr-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Cash Sales</label>
                         <div class="relative">
-                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <span class="absolute left-3 top-2.5 sm:top-2 text-slate-600 text-base sm:text-lg">$</span>
                             <input type="number" step="0.01" id="cash-sales" placeholder="0.00"
-                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                                class="w-full pl-8 pr-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Credit Card Tips</label>
                         <div class="relative">
-                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <span class="absolute left-3 top-2.5 sm:top-2 text-slate-600 text-base sm:text-lg">$</span>
                             <input type="number" step="0.01" id="cc-tips" placeholder="0.00"
-                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                                class="w-full pl-8 pr-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Cash Tips</label>
                         <div class="relative">
-                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <span class="absolute left-3 top-2.5 sm:top-2 text-slate-600 text-base sm:text-lg">$</span>
                             <input type="number" step="0.01" id="cash-tips" placeholder="0.00"
-                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                                class="w-full pl-8 pr-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Total Host Tips</label>
                         <div class="relative">
-                            <span class="absolute left-3 top-2 text-slate-600 text-lg">$</span>
+                            <span class="absolute left-3 top-2.5 sm:top-2 text-slate-600 text-base sm:text-lg">$</span>
                             <input type="number" step="0.01" id="host-tips" placeholder="0.00"
-                                class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg" />
+                                class="w-full pl-8 pr-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-purple-50 rounded-lg p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-slate-800">👥 Hosts (Keep 100% - Split Evenly)</h2>
-                    <button onclick="addEmployee('hosts')" class="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700">
+            <div class="bg-purple-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                    <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 Hosts (Keep 100% - Split Evenly)</h2>
+                    <button onclick="addEmployee('hosts')" class="w-full sm:w-auto px-3 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 active:bg-purple-800">
                         + Add Host
                     </button>
                 </div>
                 <div id="hosts-list"></div>
             </div>
 
-            <div class="bg-blue-50 rounded-lg p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-slate-800">👥 Bussers (2% of Sales)</h2>
-                    <button onclick="addEmployee('bussers')" class="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+            <div class="bg-blue-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                    <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 Bussers (2% of Sales)</h2>
+                    <button onclick="addEmployee('bussers')" class="w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 active:bg-blue-800">
                         + Add Busser
                     </button>
                 </div>
                 <div id="bussers-list"></div>
             </div>
 
-            <div class="bg-orange-50 rounded-lg p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-slate-800">👥 Kitchen Staff (1% - Split Evenly)</h2>
-                    <button onclick="addEmployee('kitchen')" class="px-3 py-1 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700">
+            <div class="bg-orange-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                    <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 Kitchen Staff (1% - Split Evenly)</h2>
+                    <button onclick="addEmployee('kitchen')" class="w-full sm:w-auto px-3 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 active:bg-orange-800">
                         + Add Kitchen
                     </button>
                 </div>
                 <div id="kitchen-list"></div>
             </div>
 
-            <div class="bg-green-50 rounded-lg p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-slate-800">👥 Servers/Bartenders (FOH Pool)</h2>
-                    <button onclick="addEmployee('servers')" class="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
+            <div class="bg-green-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                    <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 Servers/Bartenders (FOH Pool)</h2>
+                    <button onclick="addEmployee('servers')" class="w-full sm:w-auto px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 active:bg-green-800">
                         + Add Server
                     </button>
                 </div>
                 <div id="servers-list"></div>
             </div>
 
-            <button onclick="calculateTips()" class="w-full bg-slate-800 text-white py-4 rounded-lg font-semibold text-lg hover:bg-slate-700">
+            <button onclick="calculateTips()" class="w-full bg-slate-800 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-slate-700 active:bg-slate-900">
                 🧮 Calculate Tips
             </button>
         </div>
 
-        <div id="results" style="display:none;" class="bg-white rounded-lg shadow-lg p-6"></div>
+        <div id="results" style="display:none;" class="bg-white rounded-lg shadow-lg p-4 sm:p-6"></div>
     </div>
 
     <script>
@@ -193,10 +222,10 @@
                         <input type="text" value="${emp.name}" 
                             onchange="employees['${type}'][${idx}].name = this.value"
                             placeholder="${label}" 
-                            class="flex-1 px-4 py-2 border border-slate-300 rounded-lg" />
+                            class="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
                         ${employees[type].length > 1 ? `
                             <button onclick="removeEmployee('${type}', ${idx})" 
-                                class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">×</button>
+                                class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 active:bg-red-300 min-w-[44px]">×</button>
                         ` : ''}
                     </div>
                 `).join('');
@@ -206,14 +235,14 @@
                         <input type="text" value="${emp.name}" 
                             onchange="employees['${type}'][${idx}].name = this.value"
                             placeholder="Employee name" 
-                            class="flex-1 px-4 py-2 border border-slate-300 rounded-lg" />
+                            class="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
                         <input type="number" step="0.01" value="${emp.hours}"
                             onchange="employees['${type}'][${idx}].hours = this.value"
                             placeholder="Hours" 
-                            class="w-24 px-4 py-2 border border-slate-300 rounded-lg" />
+                            class="w-20 sm:w-24 px-2 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
                         ${employees[type].length > 1 ? `
                             <button onclick="removeEmployee('${type}', ${idx})" 
-                                class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">×</button>
+                                class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 active:bg-red-300 min-w-[44px]">×</button>
                         ` : ''}
                     </div>
                 `).join('');
