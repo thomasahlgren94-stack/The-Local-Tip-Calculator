@@ -6,7 +6,6 @@
     <title>The Local on 50th - Tip Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Mobile optimizations */
         body {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -15,23 +14,47 @@
         input[type="number"],
         input[type="text"],
         input[type="password"],
-        input[type="date"] {
-            font-size: 16px !important; /* Prevents zoom on iOS */
+        input[type="date"],
+        select {
+            font-size: 16px !important;
         }
         
         button {
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* Larger touch targets for mobile */
         @media (max-width: 768px) {
-            input, button {
-                min-height: 44px; /* Apple's recommended touch target */
+            input, button, select {
+                min-height: 44px;
             }
             
             .grid {
                 gap: 1rem !important;
             }
+        }
+        
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.25rem;
+            padding-right: 2.5rem;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -64,10 +87,15 @@
                     <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">The Local on 50th</h1>
                     <p class="text-sm sm:text-base text-slate-600">Daily Tip Calculator & Report</p>
                 </div>
-                <div class="w-full sm:w-auto">
-                    <input type="date" id="date-input" class="w-full sm:w-auto px-3 sm:px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-lg font-semibold" />
+                <div class="w-full sm:w-auto flex gap-2 items-center">
+                    <input type="date" id="date-input" class="flex-1 sm:w-auto px-3 sm:px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-lg font-semibold" />
+                    <button onclick="loadEmployeesFromSheet()" class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200" title="Refresh employee list">
+                        🔄
+                    </button>
                 </div>
             </div>
+            
+            <div id="load-status" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
 
             <div class="bg-slate-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
                 <h2 class="text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4">💵 Sales & Tips</h2>
@@ -127,9 +155,9 @@
 
             <div class="bg-blue-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                    <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 Bussers (2% of Sales)</h2>
+                    <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 Bussers/Expo (2% of Sales)</h2>
                     <button onclick="addEmployee('bussers')" class="w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 active:bg-blue-800">
-                        + Add Busser
+                        + Add Busser/Expo
                     </button>
                 </div>
                 <div id="bussers-list"></div>
@@ -137,7 +165,7 @@
 
             <div class="bg-orange-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                    <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 Kitchen Staff (1% - Split Evenly)</h2>
+                    <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 BOH / Kitchen (1% - Split Evenly)</h2>
                     <button onclick="addEmployee('kitchen')" class="w-full sm:w-auto px-3 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 active:bg-orange-800">
                         + Add Kitchen
                     </button>
@@ -149,7 +177,7 @@
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                     <h2 class="text-lg sm:text-xl font-semibold text-slate-800">👥 Servers/Bartenders (FOH Pool)</h2>
                     <button onclick="addEmployee('servers')" class="w-full sm:w-auto px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 active:bg-green-800">
-                        + Add Server
+                        + Add Server/Bartender
                     </button>
                 </div>
                 <div id="servers-list"></div>
@@ -165,6 +193,15 @@
 
     <script>
         const CORRECT_PASSWORD = 'thelocal';
+        
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSmYcpBNfkCmmSAIEs-3D17mGkSkINHeElu-86aW3DrzLDZQEREm0mlv_SiPzOmvCtLSYVGOOWf_ynM/pub?output=csv';
+        const SHEET_CSV_URL = 'https://corsproxy.io/?' + encodeURIComponent(GOOGLE_SHEET_URL);
+        
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyM7hRPPMWZhhxMGE3NqP3BZYcdYeBVZAcs2fQIzypwCm8M9Z81UEpOnQrqNrVspzU/exec';
+        
+        let EMPLOYEE_LIST = { servers: [], bussers: [], hosts: [], kitchen: [] };
+        let calculatedResults = null;
+        let dailyTotals = null;
         let employees = {
             hosts: [{ name: '' }],
             bussers: [{ name: '', hours: '' }],
@@ -175,7 +212,6 @@
         function checkPassword() {
             const input = document.getElementById('password-input');
             const error = document.getElementById('error-message');
-            
             if (input.value === CORRECT_PASSWORD) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
@@ -190,187 +226,202 @@
 
         function initializeApp() {
             document.getElementById('date-input').valueAsDate = new Date();
-            renderEmployees('hosts');
-            renderEmployees('bussers');
-            renderEmployees('kitchen');
-            renderEmployees('servers');
+            loadEmployeesFromSheet();
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('load-status');
+            status.className = 'mb-4 p-3 rounded-lg text-sm';
+            if (type === 'loading') {
+                status.className += ' bg-blue-100 text-blue-800';
+                status.innerHTML = '<span class="loading"></span> ' + message;
+            } else if (type === 'success') {
+                status.className += ' bg-green-100 text-green-800';
+                status.innerHTML = '✅ ' + message;
+                setTimeout(() => { status.classList.add('hidden'); }, 3000);
+            } else if (type === 'error') {
+                status.className += ' bg-red-100 text-red-800';
+                status.innerHTML = '❌ ' + message;
+            }
+            status.classList.remove('hidden');
+        }
+        
+        async function loadEmployeesFromSheet() {
+            showStatus('Loading employees from Google Sheet...', 'loading');
+            try {
+                const response = await fetch(SHEET_CSV_URL);
+                if (!response.ok) throw new Error('Could not fetch sheet');
+                const csvText = await response.text();
+                parseEmployeeCSV(csvText);
+                renderEmployees('hosts');
+                renderEmployees('bussers');
+                renderEmployees('kitchen');
+                renderEmployees('servers');
+                const total = EMPLOYEE_LIST.servers.length + EMPLOYEE_LIST.bussers.length + EMPLOYEE_LIST.hosts.length + EMPLOYEE_LIST.kitchen.length;
+                showStatus('Loaded ' + total + ' employees from your Google Sheet!', 'success');
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                showStatus('Could not load from Google Sheet. Using backup list.', 'error');
+                loadBackupEmployeeList();
+                renderEmployees('hosts');
+                renderEmployees('bussers');
+                renderEmployees('kitchen');
+                renderEmployees('servers');
+            }
+        }
+        
+        function loadBackupEmployeeList() {
+            EMPLOYEE_LIST = {
+                servers: ["Thomas Ahlgren", "Nelson Amaya", "Tito Ayon Banuelos", "Brian Brown", "Keoni Carew", "Taco Dorado", "Aalyah Fuentes", "Marisa Givens", "Alicia Gonzalez", "Kayla Martinez", "Bri Oehring", "Manny Osornio-Mejia", "Mike Vu", "Amanda Watson"],
+                bussers: ["Emily Ahlgren", "Alex Becerra", "Mariana Cortez-Ortiz", "Thomas Galigher", "Lucas Hurtado", "Aly McClellan", "Manuel Orozco", "Christian Rivera", "Jamie Seablom", "Jocelyn Shumway", "Clairie Thomas"],
+                hosts: ["Mariana Cortez-Ortiz", "Lucas Hurtado", "Christian Rivera", "Jamie Seablom", "Jocelyn Shumway"],
+                kitchen: ["Santiago Estrada", "Francisco Flores", "Maria Garcia", "Orlando Garduno", "Guadalupe Gomez", "Jose Manzo", "Luis Marin Vejar", "Saul Martinez Cisneros", "Roberto Martinez", "Cynthia Melgoza", "Denia Meza Hernandez", "Jesus Nava", "Fermin Orozco", "Moises Orozco", "Milena Ortega", "Claudia Peralta", "Roberto Ramirez", "Enrique Ramos", "Jose Rivero Lopez", "Juan Rojas Rojas", "Nini Romero"]
+            };
+        }
+        
+        function parseEmployeeCSV(csvText) {
+            EMPLOYEE_LIST = { servers: [], bussers: [], hosts: [], kitchen: [] };
+            const lines = csvText.split('\n');
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const parts = parseCSVLine(line);
+                if (parts.length < 2) continue;
+                const name = parts[0].trim();
+                const position = parts[1].trim().toLowerCase();
+                if (!name || !position) continue;
+                if (position.includes('server') || position.includes('bartender')) {
+                    if (!EMPLOYEE_LIST.servers.includes(name)) EMPLOYEE_LIST.servers.push(name);
+                }
+                if (position.includes('host')) {
+                    if (!EMPLOYEE_LIST.hosts.includes(name)) EMPLOYEE_LIST.hosts.push(name);
+                }
+                if (position.includes('bus') || position.includes('expo') || position.includes('food runner')) {
+                    if (!EMPLOYEE_LIST.bussers.includes(name)) EMPLOYEE_LIST.bussers.push(name);
+                }
+                if (position.includes('cook') || position.includes('pantry') || position.includes('prep') || position.includes('dishwasher') || position.includes('kitchen')) {
+                    if (!EMPLOYEE_LIST.kitchen.includes(name)) EMPLOYEE_LIST.kitchen.push(name);
+                }
+            }
+            EMPLOYEE_LIST.servers.sort();
+            EMPLOYEE_LIST.bussers.sort();
+            EMPLOYEE_LIST.hosts.sort();
+            EMPLOYEE_LIST.kitchen.sort();
+        }
+        
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') { inQuotes = !inQuotes; }
+                else if (char === ',' && !inQuotes) { result.push(current); current = ''; }
+                else { current += char; }
+            }
+            result.push(current);
+            return result;
         }
 
         function addEmployee(type) {
-            if (type === 'hosts' || type === 'kitchen') {
-                employees[type].push({ name: '' });
-            } else {
-                employees[type].push({ name: '', hours: '' });
-            }
+            if (type === 'hosts' || type === 'kitchen') { employees[type].push({ name: '' }); }
+            else { employees[type].push({ name: '', hours: '' }); }
             renderEmployees(type);
         }
 
         function removeEmployee(type, index) {
-            if (employees[type].length > 1) {
-                employees[type].splice(index, 1);
-                renderEmployees(type);
-            }
+            if (employees[type].length > 1) { employees[type].splice(index, 1); renderEmployees(type); }
+        }
+
+        function createDropdown(type, index, selectedValue) {
+            const list = EMPLOYEE_LIST[type];
+            let options = '<option value="">-- Select Employee --</option>';
+            if (list.length === 0) { options += '<option value="" disabled>No employees loaded</option>'; }
+            else { list.forEach(name => { options += '<option value="' + name + '"' + (name === selectedValue ? ' selected' : '') + '>' + name + '</option>'; }); }
+            return options;
         }
 
         function renderEmployees(type) {
-            const container = document.getElementById(`${type}-list`);
-            
+            const container = document.getElementById(type + '-list');
             if (type === 'hosts' || type === 'kitchen') {
-                const label = type === 'hosts' ? 'Host name' : 'Kitchen staff name';
-                container.innerHTML = employees[type].map((emp, idx) => `
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" value="${emp.name}" 
-                            onchange="employees['${type}'][${idx}].name = this.value"
-                            placeholder="${label}" 
-                            class="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
-                        ${employees[type].length > 1 ? `
-                            <button onclick="removeEmployee('${type}', ${idx})" 
-                                class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 active:bg-red-300 min-w-[44px]">×</button>
-                        ` : ''}
-                    </div>
-                `).join('');
+                container.innerHTML = employees[type].map((emp, idx) => '<div class="flex gap-2 mb-2"><select onchange="employees[\'' + type + '\'][' + idx + '].name = this.value" class="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base bg-white">' + createDropdown(type, idx, emp.name) + '</select>' + (employees[type].length > 1 ? '<button onclick="removeEmployee(\'' + type + '\', ' + idx + ')" class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 active:bg-red-300 min-w-[44px]">×</button>' : '') + '</div>').join('');
             } else {
-                container.innerHTML = employees[type].map((emp, idx) => `
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" value="${emp.name}" 
-                            onchange="employees['${type}'][${idx}].name = this.value"
-                            placeholder="Employee name" 
-                            class="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
-                        <input type="number" step="0.01" value="${emp.hours}"
-                            onchange="employees['${type}'][${idx}].hours = this.value"
-                            placeholder="Hours" 
-                            class="w-20 sm:w-24 px-2 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
-                        ${employees[type].length > 1 ? `
-                            <button onclick="removeEmployee('${type}', ${idx})" 
-                                class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 active:bg-red-300 min-w-[44px]">×</button>
-                        ` : ''}
-                    </div>
-                `).join('');
+                container.innerHTML = employees[type].map((emp, idx) => '<div class="flex gap-2 mb-2"><select onchange="employees[\'' + type + '\'][' + idx + '].name = this.value" class="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base bg-white">' + createDropdown(type, idx, emp.name) + '</select><input type="number" step="0.01" value="' + emp.hours + '" onchange="employees[\'' + type + '\'][' + idx + '].hours = this.value" placeholder="Hours" class="w-20 sm:w-24 px-2 sm:px-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />' + (employees[type].length > 1 ? '<button onclick="removeEmployee(\'' + type + '\', ' + idx + ')" class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 active:bg-red-300 min-w-[44px]">×</button>' : '') + '</div>').join('');
             }
         }
 
         function calculateTips() {
-            // Get fresh values from inputs
             const sales = parseFloat(document.getElementById('total-sales').value) || 0;
             const ccTips = parseFloat(document.getElementById('cc-tips').value) || 0;
             const cashTips = parseFloat(document.getElementById('cash-tips').value) || 0;
             const hostTips = parseFloat(document.getElementById('host-tips').value) || 0;
             const totalTips = ccTips + cashTips;
-
             const busserPool = sales * 0.02;
             const kitchenPool = sales * 0.01;
             const fohPool = totalTips - hostTips - busserPool - kitchenPool;
-
-            // Get current employee data from the DOM inputs
-            const activeHosts = [];
-            document.querySelectorAll('#hosts-list input[type="text"]').forEach(input => {
-                if (input.value.trim()) {
-                    activeHosts.push({ name: input.value.trim() });
-                }
-            });
-
-            const activeBussers = [];
-            const busserNames = document.querySelectorAll('#bussers-list input[type="text"]');
-            const busserHours = document.querySelectorAll('#bussers-list input[type="number"]');
-            busserNames.forEach((nameInput, idx) => {
-                if (nameInput.value.trim() && busserHours[idx].value) {
-                    activeBussers.push({
-                        name: nameInput.value.trim(),
-                        hours: parseFloat(busserHours[idx].value)
-                    });
-                }
-            });
-
-            const activeKitchen = [];
-            document.querySelectorAll('#kitchen-list input[type="text"]').forEach(input => {
-                if (input.value.trim()) {
-                    activeKitchen.push({ name: input.value.trim() });
-                }
-            });
-
-            const activeServers = [];
-            const serverNames = document.querySelectorAll('#servers-list input[type="text"]');
-            const serverHours = document.querySelectorAll('#servers-list input[type="number"]');
-            serverNames.forEach((nameInput, idx) => {
-                if (nameInput.value.trim() && serverHours[idx].value) {
-                    activeServers.push({
-                        name: nameInput.value.trim(),
-                        hours: parseFloat(serverHours[idx].value)
-                    });
-                }
-            });
-
-            // Host tips split evenly
+            const activeHosts = employees.hosts.filter(e => e.name);
+            const activeBussers = employees.bussers.filter(e => e.name && e.hours);
+            const activeKitchen = employees.kitchen.filter(e => e.name);
+            const activeServers = employees.servers.filter(e => e.name && e.hours);
             const tipPerHost = activeHosts.length > 0 ? hostTips / activeHosts.length : 0;
-
-            // Kitchen tips split evenly
             const tipPerKitchen = activeKitchen.length > 0 ? kitchenPool / activeKitchen.length : 0;
-
-            // Calculate tip per hour for bussers and servers
-            const totalBusserHours = activeBussers.reduce((sum, b) => sum + b.hours, 0);
+            const totalBusserHours = activeBussers.reduce((sum, b) => sum + parseFloat(b.hours), 0);
             const busserTipPerHour = totalBusserHours > 0 ? busserPool / totalBusserHours : 0;
-
-            const totalServerHours = activeServers.reduce((sum, s) => sum + s.hours, 0);
+            const totalServerHours = activeServers.reduce((sum, s) => sum + parseFloat(s.hours), 0);
             const serverTipPerHour = totalServerHours > 0 ? fohPool / totalServerHours : 0;
-
             const results = [
                 ...activeHosts.map(h => ({ name: h.name, role: 'Host', hours: 0, tips: tipPerHost })),
-                ...activeBussers.map(b => ({ name: b.name, role: 'Busser', hours: b.hours, tips: b.hours * busserTipPerHour })),
-                ...activeKitchen.map(k => ({ name: k.name, role: 'Kitchen', hours: 0, tips: tipPerKitchen })),
-                ...activeServers.map(s => ({ name: s.name, role: 'Server/Bartender', hours: s.hours, tips: s.hours * serverTipPerHour }))
+                ...activeBussers.map(b => ({ name: b.name, role: 'Busser/Expo', hours: parseFloat(b.hours), tips: parseFloat(b.hours) * busserTipPerHour })),
+                ...activeKitchen.map(k => ({ name: k.name, role: 'Kitchen (BOH)', hours: 0, tips: tipPerKitchen })),
+                ...activeServers.map(s => ({ name: s.name, role: 'Server/Bartender', hours: parseFloat(s.hours), tips: parseFloat(s.hours) * serverTipPerHour }))
             ];
-
+            calculatedResults = results;
+            dailyTotals = { totalSales: sales, ccTips: ccTips, cashTips: cashTips, totalTips: totalTips, hostTips: hostTips, busserPool: busserPool, kitchenPool: kitchenPool, fohPool: fohPool };
             displayResults(results, hostTips, busserPool, kitchenPool, fohPool, totalTips);
         }
 
         function displayResults(results, hostTips, busserPool, kitchenPool, fohPool, totalTips) {
             const container = document.getElementById('results');
-            container.innerHTML = `
-                <h2 class="text-2xl font-bold text-slate-800 mb-4">Tip Distribution Results</h2>
-                <div class="grid grid-cols-4 gap-4 mb-6 p-4 bg-slate-50 rounded-lg">
-                    <div>
-                        <p class="text-sm text-slate-600">Host Tips</p>
-                        <p class="text-2xl font-bold text-purple-600">${hostTips.toFixed(2)}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-slate-600">Busser Pool (2%)</p>
-                        <p class="text-2xl font-bold text-blue-600">${busserPool.toFixed(2)}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-slate-600">Kitchen Pool (1%)</p>
-                        <p class="text-2xl font-bold text-orange-600">${kitchenPool.toFixed(2)}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-slate-600">FOH Pool</p>
-                        <p class="text-2xl font-bold text-green-600">${fohPool.toFixed(2)}</p>
-                    </div>
-                </div>
-                <div class="space-y-2 mb-6">
-                    ${results.map(emp => `
-                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <div>
-                                <p class="font-semibold text-slate-800">${emp.name}</p>
-                                <p class="text-sm text-slate-600">${emp.role}${emp.hours > 0 ? ` - ${emp.hours} hours` : ''}</p>
-                            </div>
-                            <p class="text-xl font-bold text-slate-800">${emp.tips.toFixed(2)}</p>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="flex justify-between items-center p-4 bg-slate-800 text-white rounded-lg mb-4">
-                    <p class="text-lg font-semibold">Total Tips Distributed</p>
-                    <p class="text-2xl font-bold">${(totalTips + hostTips).toFixed(2)}</p>
-                </div>
-                <button onclick="sendToGoogleSheets()" class="w-full bg-green-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-green-700">
-                    📊 Send to Google Sheets
-                </button>
-            `;
+            const totalDistributed = results.reduce((sum, r) => sum + r.tips, 0);
+            container.innerHTML = '<h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-4">📊 Tip Distribution Results</h2><div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 p-4 bg-slate-50 rounded-lg"><div><p class="text-xs sm:text-sm text-slate-600">Host Tips</p><p class="text-lg sm:text-2xl font-bold text-purple-600">$' + hostTips.toFixed(2) + '</p></div><div><p class="text-xs sm:text-sm text-slate-600">Busser Pool (2%)</p><p class="text-lg sm:text-2xl font-bold text-blue-600">$' + busserPool.toFixed(2) + '</p></div><div><p class="text-xs sm:text-sm text-slate-600">Kitchen Pool (1%)</p><p class="text-lg sm:text-2xl font-bold text-orange-600">$' + kitchenPool.toFixed(2) + '</p></div><div><p class="text-xs sm:text-sm text-slate-600">FOH Pool</p><p class="text-lg sm:text-2xl font-bold text-green-600">$' + fohPool.toFixed(2) + '</p></div></div><div class="space-y-2 mb-6">' + results.map(emp => '<div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg"><div><p class="font-semibold text-slate-800">' + emp.name + '</p><p class="text-sm text-slate-600">' + emp.role + (emp.hours > 0 ? ' • ' + emp.hours + ' hours' : '') + '</p></div><p class="text-xl font-bold text-slate-800">$' + emp.tips.toFixed(2) + '</p></div>').join('') + '</div><div class="flex justify-between items-center p-4 bg-slate-800 text-white rounded-lg mb-4"><p class="text-base sm:text-lg font-semibold">Total Tips Distributed</p><p class="text-xl sm:text-2xl font-bold">$' + totalDistributed.toFixed(2) + '</p></div><button id="send-btn" onclick="sendToGoogleSheets()" class="w-full bg-green-600 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 active:bg-green-800">📊 Send to Google Sheets</button><p id="send-status" class="text-center mt-3 text-sm hidden"></p>';
             container.style.display = 'block';
             container.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function sendToGoogleSheets() {
-            alert('Google Sheets integration will be configured next. For now, data is logged to console.');
+        async function sendToGoogleSheets() {
+            const btn = document.getElementById('send-btn');
+            const status = document.getElementById('send-status');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Sending...';
+            status.className = 'text-center mt-3 text-sm text-blue-600';
+            status.textContent = 'Sending data to Google Sheets...';
+            status.classList.remove('hidden');
+            const dateInput = document.getElementById('date-input').value;
+            const payload = {
+                date: dateInput,
+                totalSales: dailyTotals.totalSales,
+                ccTips: dailyTotals.ccTips,
+                cashTips: dailyTotals.cashTips,
+                totalTips: dailyTotals.totalTips,
+                employees: calculatedResults.map(emp => ({ name: emp.name, role: emp.role, hours: emp.hours, tips: Math.round(emp.tips * 100) / 100 }))
+            };
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                btn.innerHTML = '✅ Sent Successfully!';
+                btn.className = 'w-full bg-green-700 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg';
+                status.className = 'text-center mt-3 text-sm text-green-600';
+                status.textContent = '✅ Data sent to Google Sheets! Check your Weekly Tipout sheet.';
+                setTimeout(() => { btn.innerHTML = '📊 Send to Google Sheets'; btn.className = 'w-full bg-green-600 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 active:bg-green-800'; btn.disabled = false; }, 3000);
+            } catch (error) {
+                console.error('Error sending to Google Sheets:', error);
+                btn.innerHTML = '❌ Failed - Try Again';
+                btn.className = 'w-full bg-red-600 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-red-700';
+                btn.disabled = false;
+                status.className = 'text-center mt-3 text-sm text-red-600';
+                status.textContent = '❌ Error: ' + error.message;
+            }
         }
     </script>
 </body>
 </html>
+                    <button onclick="loadEmployeesFromSheet()" class="px-3 py-2 bg-blue-100 text-blue-700 rounded-l
