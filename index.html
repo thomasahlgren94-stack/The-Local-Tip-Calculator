@@ -258,41 +258,46 @@ document.getElementById('date-input').valueAsDate = pstDate;
         'https://api.codetabs.com/v1/proxy?quest='
     ];
     
-    let success = false;
-    
-    for (let i = 0; i < proxies.length && !success; i++) {
-        for (let attempt = 0; attempt < 2 && !success; attempt++) {
-            try {
-                const url = proxies[i] + encodeURIComponent(GOOGLE_SHEET_URL) + '&_=' + Date.now();
-                const response = await fetch(url, { timeout: 10000 });
-                if (!response.ok) throw new Error('Could not fetch sheet');
-                
-                const csvText = await response.text();
-                if (!csvText || csvText.length < 50) throw new Error('Empty response');
-                
-                parseEmployeeCSV(csvText);
-                
-                const total = EMPLOYEE_LIST.servers.length + EMPLOYEE_LIST.bussers.length + 
-                              EMPLOYEE_LIST.hosts.length + EMPLOYEE_LIST.kitchen.length;
-                
-                if (total > 0) {
-                    success = true;
-                    renderEmployees('hosts');
-                    renderEmployees('bussers');
-                    renderEmployees('kitchen');
-                    renderEmployees('servers');
-                    showStatus('Loaded ' + total + ' employees from Google Sheet!', 'success');
-                } else {
-                    throw new Error('No employees found');
-                }
-            } catch (error) {
-                console.log('Attempt failed:', proxies[i], error.message);
-            }
+    const fetchWithTimeout = async (url, timeout = 8000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            throw error;
         }
-    }
+    };
     
-    if (!success) {
-        console.error('All proxies failed, using backup list');
+    const tryProxy = async (proxy) => {
+        const url = proxy + encodeURIComponent(GOOGLE_SHEET_URL) + '&_=' + Date.now();
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) throw new Error('Bad response');
+        const csvText = await response.text();
+        if (!csvText || csvText.length < 50) throw new Error('Empty');
+        return csvText;
+    };
+    
+    try {
+        const csvText = await Promise.any(proxies.map(p => tryProxy(p)));
+        parseEmployeeCSV(csvText);
+        
+        const total = EMPLOYEE_LIST.servers.length + EMPLOYEE_LIST.bussers.length + 
+                      EMPLOYEE_LIST.hosts.length + EMPLOYEE_LIST.kitchen.length;
+        
+        if (total > 0) {
+            renderEmployees('hosts');
+            renderEmployees('bussers');
+            renderEmployees('kitchen');
+            renderEmployees('servers');
+            showStatus('Loaded ' + total + ' employees from Google Sheet!', 'success');
+        } else {
+            throw new Error('No employees');
+        }
+    } catch (error) {
+        console.error('All proxies failed:', error);
         showStatus('Could not load from Google Sheet. Using backup list.', 'error');
         loadBackupEmployeeList();
         renderEmployees('hosts');
