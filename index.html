@@ -225,7 +225,10 @@
         }
 
         function initializeApp() {
-            document.getElementById('date-input').valueAsDate = new Date();
+const now = new Date();
+const pstOffset = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+const pstDate = new Date(pstOffset);
+document.getElementById('date-input').valueAsDate = pstDate;
             loadEmployeesFromSheet();
         }
         
