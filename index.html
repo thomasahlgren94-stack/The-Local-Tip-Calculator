@@ -249,29 +249,58 @@ document.getElementById('date-input').valueAsDate = pstDate;
             status.classList.remove('hidden');
         }
         
-        async function loadEmployeesFromSheet() {
-            showStatus('Loading employees from Google Sheet...', 'loading');
+   async function loadEmployeesFromSheet() {
+    showStatus('Loading employees from Google Sheet...', 'loading');
+    
+    const proxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?',
+        'https://api.codetabs.com/v1/proxy?quest='
+    ];
+    
+    let success = false;
+    
+    for (let i = 0; i < proxies.length && !success; i++) {
+        for (let attempt = 0; attempt < 2 && !success; attempt++) {
             try {
-                const response = await fetch(SHEET_CSV_URL);
+                const url = proxies[i] + encodeURIComponent(GOOGLE_SHEET_URL) + '&_=' + Date.now();
+                const response = await fetch(url, { timeout: 10000 });
                 if (!response.ok) throw new Error('Could not fetch sheet');
+                
                 const csvText = await response.text();
+                if (!csvText || csvText.length < 50) throw new Error('Empty response');
+                
                 parseEmployeeCSV(csvText);
-                renderEmployees('hosts');
-                renderEmployees('bussers');
-                renderEmployees('kitchen');
-                renderEmployees('servers');
-                const total = EMPLOYEE_LIST.servers.length + EMPLOYEE_LIST.bussers.length + EMPLOYEE_LIST.hosts.length + EMPLOYEE_LIST.kitchen.length;
-                showStatus('Loaded ' + total + ' employees from your Google Sheet!', 'success');
+                
+                const total = EMPLOYEE_LIST.servers.length + EMPLOYEE_LIST.bussers.length + 
+                              EMPLOYEE_LIST.hosts.length + EMPLOYEE_LIST.kitchen.length;
+                
+                if (total > 0) {
+                    success = true;
+                    renderEmployees('hosts');
+                    renderEmployees('bussers');
+                    renderEmployees('kitchen');
+                    renderEmployees('servers');
+                    showStatus('Loaded ' + total + ' employees from Google Sheet!', 'success');
+                } else {
+                    throw new Error('No employees found');
+                }
             } catch (error) {
-                console.error('Error loading employees:', error);
-                showStatus('Could not load from Google Sheet. Using backup list.', 'error');
-                loadBackupEmployeeList();
-                renderEmployees('hosts');
-                renderEmployees('bussers');
-                renderEmployees('kitchen');
-                renderEmployees('servers');
+                console.log('Attempt failed:', proxies[i], error.message);
             }
         }
+    }
+    
+    if (!success) {
+        console.error('All proxies failed, using backup list');
+        showStatus('Could not load from Google Sheet. Using backup list.', 'error');
+        loadBackupEmployeeList();
+        renderEmployees('hosts');
+        renderEmployees('bussers');
+        renderEmployees('kitchen');
+        renderEmployees('servers');
+    }
+}
         
         function loadBackupEmployeeList() {
             EMPLOYEE_LIST = {
