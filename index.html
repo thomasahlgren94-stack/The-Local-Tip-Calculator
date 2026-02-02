@@ -445,20 +445,53 @@ document.getElementById('date-input').valueAsDate = pstDate;
         function displayResults(results, hostTips, busserPool, kitchenPool, fohPool, totalTips) {
             const container = document.getElementById('results');
             const totalDistributed = results.reduce((sum, r) => sum + r.tips, 0);
-container.innerHTML = '<h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-4">📊 Tip Distribution Results</h2><div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 p-4 bg-slate-50 rounded-lg"><div><p class="text-xs sm:text-sm text-slate-600">Host Tips</p><p class="text-lg sm:text-2xl font-bold text-purple-600">$' + hostTips.toFixed(2) + '</p></div><div><p class="text-xs sm:text-sm text-slate-600">Busser Pool (2%)</p><p class="text-lg sm:text-2xl font-bold text-blue-600">$' + busserPool.toFixed(2) + '</p></div><div><p class="text-xs sm:text-sm text-slate-600">Kitchen Pool (1%)</p><p class="text-lg sm:text-2xl font-bold text-orange-600">$' + kitchenPool.toFixed(2) + '</p></div><div><p class="text-xs sm:text-sm text-slate-600">FOH Pool</p><p class="text-lg sm:text-2xl font-bold text-green-600">$' + fohPool.toFixed(2) + '</p></div></div><div class="space-y-2 mb-6">' + results.map(emp => '<div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg"><div><p class="font-semibold text-slate-800">' + emp.name + '</p><p class="text-sm text-slate-600">' + emp.role + (emp.hours > 0 ? ' • ' + emp.hours + ' hours' : '') + '</p></div><p class="text-xl font-bold text-slate-800">$' + emp.tips.toFixed(2) + '</p></div>').join('') + '</div><div class="flex justify-between items-center p-4 bg-slate-800 text-white rounded-lg mb-4"><p class="text-base sm:text-lg font-semibold">Total Tips Distributed</p><p class="text-xl sm:text-2xl font-bold">$' + totalDistributed.toFixed(2) + '</p></div>' + '<div class="mb-4"><label class="block text-sm font-semibold text-slate-700 mb-2">Shift Lead Sign-Off</label><select id="shift-lead" class="w-full px-4 py-3 border border-slate-300 rounded-lg text-base bg-white"><option value="">-- Select Shift Lead --</option>' + getAllManagersDropdown() + '</select></div><button id="send-btn" onclick="sendToGoogleSheets()" class="w-full bg-green-600 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 active:bg-green-800">📊 Send to Google Sheets</button>' + '<p id="send-status" class="text-center mt-3 text-sm hidden"></p>';            container.style.display = 'block';
+
+            const employeeRows = results.map(emp =>
+                '<div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">' +
+                '<div><p class="font-semibold text-slate-800">' + emp.name + '</p>' +
+                '<p class="text-sm text-slate-600">' + emp.role + (emp.hours > 0 ? ' • ' + emp.hours + ' hours' : '') + '</p></div>' +
+                '<p class="text-xl font-bold text-slate-800">$' + emp.tips.toFixed(2) + '</p></div>'
+            ).join('');
+
+            const shiftLeadOptions = getAllManagersDropdown();
+
+            container.innerHTML =
+                '<h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-4">📊 Tip Distribution Results</h2>' +
+                '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 p-4 bg-slate-50 rounded-lg">' +
+                    '<div><p class="text-xs sm:text-sm text-slate-600">Host Tips</p><p class="text-lg sm:text-2xl font-bold text-purple-600">$' + hostTips.toFixed(2) + '</p></div>' +
+                    '<div><p class="text-xs sm:text-sm text-slate-600">Busser Pool (2%)</p><p class="text-lg sm:text-2xl font-bold text-blue-600">$' + busserPool.toFixed(2) + '</p></div>' +
+                    '<div><p class="text-xs sm:text-sm text-slate-600">Kitchen Pool (1%)</p><p class="text-lg sm:text-2xl font-bold text-orange-600">$' + kitchenPool.toFixed(2) + '</p></div>' +
+                    '<div><p class="text-xs sm:text-sm text-slate-600">FOH Pool</p><p class="text-lg sm:text-2xl font-bold text-green-600">$' + fohPool.toFixed(2) + '</p></div>' +
+                '</div>' +
+                '<div class="space-y-2 mb-6">' + employeeRows + '</div>' +
+                '<div class="flex justify-between items-center p-4 bg-slate-800 text-white rounded-lg mb-4">' +
+                    '<p class="text-base sm:text-lg font-semibold">Total Tips Distributed</p>' +
+                    '<p class="text-xl sm:text-2xl font-bold">$' + totalDistributed.toFixed(2) + '</p>' +
+                '</div>' +
+                '<div class="mb-4">' +
+                    '<label class="block text-sm font-semibold text-slate-700 mb-2">Shift Lead Sign-Off</label>' +
+                    '<select id="shift-lead" class="w-full px-4 py-3 border border-slate-300 rounded-lg text-base bg-white">' +
+                        '<option value="">-- Select Shift Lead --</option>' +
+                        shiftLeadOptions +
+                    '</select>' +
+                '</div>' +
+                '<button id="send-btn" onclick="sendToGoogleSheets()" class="w-full bg-green-600 text-white py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 active:bg-green-800">📊 Send to Google Sheets</button>' +
+                '<p id="send-status" class="text-center mt-3 text-sm hidden"></p>';
+
+            container.style.display = 'block';
             container.scrollIntoView({ behavior: 'smooth' });
         }
 
         function getAllManagersDropdown() {
-    const allEmployees = [...new Set([
-        ...EMPLOYEE_LIST.hosts,
-        ...EMPLOYEE_LIST.bussers,
-        ...EMPLOYEE_LIST.kitchen,
-        ...EMPLOYEE_LIST.servers
-    ])].sort();
-    
-    return allEmployees.map(name => '<option value="' + name + '">' + name + '</option>').join('');
-}
+            const allEmployees = [...new Set([
+                ...EMPLOYEE_LIST.hosts,
+                ...EMPLOYEE_LIST.bussers,
+                ...EMPLOYEE_LIST.kitchen,
+                ...EMPLOYEE_LIST.servers
+            ])].sort();
+
+            return allEmployees.map(name => '<option value="' + name + '">' + name + '</option>').join('');
+        }
         async function sendToGoogleSheets() {
             const btn = document.getElementById('send-btn');
             const status = document.getElementById('send-status');
