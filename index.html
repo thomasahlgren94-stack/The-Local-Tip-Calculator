@@ -371,13 +371,37 @@ document.getElementById('date-input').valueAsDate = pstDate;
             if (employees[type].length > 1) { employees[type].splice(index, 1); renderEmployees(type); }
         }
 
-        function createDropdown(type, index, selectedValue) {
-            const list = EMPLOYEE_LIST[type];
-            let options = '<option value="">-- Select Employee --</option>';
-            if (list.length === 0) { options += '<option value="" disabled>No employees loaded</option>'; }
-            else { list.forEach(name => { options += '<option value="' + name + '"' + (name === selectedValue ? ' selected' : '') + '>' + name + '</option>'; }); }
-            return options;
-        }
+     function createDropdown(type, index, selectedValue) {
+    const list = EMPLOYEE_LIST[type];
+    let options = '<option value="">-- Select Employee --</option>';
+    
+    if (list.length === 0) { 
+        options += '<option value="" disabled>No employees loaded</option>'; 
+    } else { 
+        list.forEach(name => { 
+            options += '<option value="' + name + '"' + (name === selectedValue ? ' selected' : '') + '>' + name + '</option>'; 
+        }); 
+    }
+    
+    // Add "Other Staff" section with ALL employees
+    const allEmployees = [...new Set([
+        ...EMPLOYEE_LIST.hosts,
+        ...EMPLOYEE_LIST.bussers,
+        ...EMPLOYEE_LIST.kitchen,
+        ...EMPLOYEE_LIST.servers
+    ])].sort();
+    
+    const otherStaff = allEmployees.filter(name => !list.includes(name));
+    
+    if (otherStaff.length > 0) {
+        options += '<option disabled>── Other Staff ──</option>';
+        otherStaff.forEach(name => {
+            options += '<option value="' + name + '"' + (name === selectedValue ? ' selected' : '') + '>' + name + '</option>';
+        });
+    }
+    
+    return options;
+}
 
         function renderEmployees(type) {
             const container = document.getElementById(type + '-list');
