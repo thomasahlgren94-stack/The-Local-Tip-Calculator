@@ -501,8 +501,10 @@ document.getElementById('date-input').valueAsDate = pstDate;
             status.textContent = 'Sending data to Google Sheets...';
             status.classList.remove('hidden');
             const dateInput = document.getElementById('date-input').value;
+            const shiftLead = document.getElementById('shift-lead').value;
             const payload = {
                 date: dateInput,
+                shiftLead: shiftLead,
                 totalSales: dailyTotals.totalSales,
                 ccTips: dailyTotals.ccTips,
                 cashTips: dailyTotals.cashTips,
