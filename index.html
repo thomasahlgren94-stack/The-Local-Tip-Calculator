@@ -105,7 +105,26 @@
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 sm:top-2 text-slate-600 text-base sm:text-lg">$</span>
                             <input type="number" step="0.01" id="total-sales" placeholder="0.00"
+                                oninput="updateTipOutSales()"
                                 class="w-full pl-8 pr-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">To-Go Sales</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 sm:top-2 text-slate-600 text-base sm:text-lg">$</span>
+                            <input type="number" step="0.01" id="togo-sales" placeholder="0.00"
+                                oninput="updateTipOutSales()"
+                                class="w-full pl-8 pr-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Tip-Out Sales</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 sm:top-2 text-slate-600 text-base sm:text-lg">$</span>
+                            <input type="number" step="0.01" id="tipout-sales" placeholder="0.00"
+                                disabled
+                                class="w-full pl-8 pr-4 py-2.5 sm:py-2 border border-slate-300 rounded-lg text-base bg-slate-100" />
                         </div>
                     </div>
                     <div>
@@ -361,6 +380,13 @@ document.getElementById('date-input').valueAsDate = pstDate;
             return result;
         }
 
+        function updateTipOutSales() {
+            const totalSales = parseFloat(document.getElementById('total-sales').value) || 0;
+            const toGoSales = parseFloat(document.getElementById('togo-sales').value) || 0;
+            const tipOutSales = totalSales - toGoSales;
+            document.getElementById('tipout-sales').value = tipOutSales.toFixed(2);
+        }
+
         function addEmployee(type) {
             if (type === 'hosts' || type === 'kitchen') { employees[type].push({ name: '' }); }
             else { employees[type].push({ name: '', hours: '' }); }
@@ -413,13 +439,15 @@ document.getElementById('date-input').valueAsDate = pstDate;
         }
 
         function calculateTips() {
-            const sales = parseFloat(document.getElementById('total-sales').value) || 0;
+            const totalSales = parseFloat(document.getElementById('total-sales').value) || 0;
+            const toGoSales = parseFloat(document.getElementById('togo-sales').value) || 0;
+            const tipOutSales = totalSales - toGoSales;
             const ccTips = parseFloat(document.getElementById('cc-tips').value) || 0;
             const cashTips = parseFloat(document.getElementById('cash-tips').value) || 0;
             const hostTips = parseFloat(document.getElementById('host-tips').value) || 0;
             const totalTips = ccTips + cashTips;
-            const busserPool = sales * 0.02;
-            const kitchenPool = sales * 0.01;
+            const busserPool = tipOutSales * 0.02;
+            const kitchenPool = tipOutSales * 0.01;
             const fohPool = totalTips - hostTips - busserPool - kitchenPool;
             const activeHosts = employees.hosts.filter(e => e.name);
             const activeBussers = employees.bussers.filter(e => e.name && e.hours);
@@ -438,7 +466,7 @@ document.getElementById('date-input').valueAsDate = pstDate;
                 ...activeServers.map(s => ({ name: s.name, role: 'Server/Bartender', hours: parseFloat(s.hours), tips: parseFloat(s.hours) * serverTipPerHour }))
             ];
             calculatedResults = results;
-            dailyTotals = { totalSales: sales, ccTips: ccTips, cashTips: cashTips, totalTips: totalTips, hostTips: hostTips, busserPool: busserPool, kitchenPool: kitchenPool, fohPool: fohPool };
+            dailyTotals = { totalSales: totalSales, toGoSales: toGoSales, tipOutSales: tipOutSales, ccTips: ccTips, cashTips: cashTips, totalTips: totalTips, hostTips: hostTips, busserPool: busserPool, kitchenPool: kitchenPool, fohPool: fohPool };
             displayResults(results, hostTips, busserPool, kitchenPool, fohPool, totalTips);
         }
 
@@ -457,6 +485,11 @@ document.getElementById('date-input').valueAsDate = pstDate;
 
             container.innerHTML =
                 '<h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-4">📊 Tip Distribution Results</h2>' +
+                '<div class="grid grid-cols-3 gap-3 sm:gap-4 mb-4 p-4 bg-slate-100 rounded-lg">' +
+                    '<div><p class="text-xs sm:text-sm text-slate-600">Total Sales</p><p class="text-lg sm:text-2xl font-bold text-slate-800">$' + dailyTotals.totalSales.toFixed(2) + '</p></div>' +
+                    '<div><p class="text-xs sm:text-sm text-slate-600">To-Go Sales</p><p class="text-lg sm:text-2xl font-bold text-slate-500">$' + dailyTotals.toGoSales.toFixed(2) + '</p></div>' +
+                    '<div><p class="text-xs sm:text-sm text-slate-600">Tip-Out Sales</p><p class="text-lg sm:text-2xl font-bold text-slate-700">$' + dailyTotals.tipOutSales.toFixed(2) + '</p></div>' +
+                '</div>' +
                 '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 p-4 bg-slate-50 rounded-lg">' +
                     '<div><p class="text-xs sm:text-sm text-slate-600">Host Tips</p><p class="text-lg sm:text-2xl font-bold text-purple-600">$' + hostTips.toFixed(2) + '</p></div>' +
                     '<div><p class="text-xs sm:text-sm text-slate-600">Busser Pool (2%)</p><p class="text-lg sm:text-2xl font-bold text-blue-600">$' + busserPool.toFixed(2) + '</p></div>' +
@@ -504,6 +537,8 @@ document.getElementById('date-input').valueAsDate = pstDate;
             const payload = {
                 date: dateInput,
                 totalSales: dailyTotals.totalSales,
+                toGoSales: dailyTotals.toGoSales,
+                tipOutSales: dailyTotals.tipOutSales,
                 ccTips: dailyTotals.ccTips,
                 cashTips: dailyTotals.cashTips,
                 totalTips: dailyTotals.totalTips,
