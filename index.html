@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Local on 50th - Tip Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -62,33 +65,26 @@
     <div id="login-screen" class="max-w-md mx-auto mt-10 sm:mt-20 px-4">
         <div class="bg-white rounded-lg shadow-lg p-6 sm:p-8">
             <div class="text-center mb-6 sm:mb-8">
-                <div class="mx-auto mb-4 w-28 h-28 sm:w-36 sm:h-36">
+                <div class="mx-auto mb-4 w-32 h-32 sm:w-40 sm:h-40">
                     <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-                        <!-- Outer circle -->
-                        <circle cx="100" cy="100" r="96" fill="none" stroke="#1e293b" stroke-width="3"/>
-                        <circle cx="100" cy="100" r="88" fill="none" stroke="#1e293b" stroke-width="1"/>
-                        <!-- Decorative dots along the top and bottom arcs -->
-                        <circle cx="100" cy="8" r="2.5" fill="#1e293b"/>
-                        <circle cx="100" cy="192" r="2.5" fill="#1e293b"/>
-                        <circle cx="8" cy="100" r="2.5" fill="#1e293b"/>
-                        <circle cx="192" cy="100" r="2.5" fill="#1e293b"/>
-                        <!-- Top curved text: "THE" -->
-                        <path id="topArc" d="M 40,100 A 60,60 0 0,1 160,100" fill="none"/>
-                        <text font-family="Georgia, 'Times New Roman', serif" font-size="14" fill="#1e293b" letter-spacing="6" font-weight="bold">
-                            <textPath href="#topArc" startOffset="50%" text-anchor="middle">THE</textPath>
-                        </text>
-                        <!-- Main text: "LOCAL" -->
-                        <text x="100" y="112" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="bold" fill="#1e293b" letter-spacing="4">LOCAL</text>
-                        <!-- Decorative lines around "on 50th" -->
-                        <line x1="38" y1="125" x2="78" y2="125" stroke="#1e293b" stroke-width="1"/>
-                        <line x1="122" y1="125" x2="162" y2="125" stroke="#1e293b" stroke-width="1"/>
-                        <!-- Subtitle: "on 50th" -->
-                        <text x="100" y="142" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="16" fill="#475569" font-style="italic">on 50th</text>
-                        <!-- Bottom curved text: "EST." -->
-                        <path id="bottomArc" d="M 55,120 A 60,60 0 0,0 145,120" fill="none"/>
-                        <text font-family="Georgia, 'Times New Roman', serif" font-size="11" fill="#475569" letter-spacing="3">
-                            <textPath href="#bottomArc" startOffset="50%" text-anchor="middle">RESTAURANT &amp; BAR</textPath>
-                        </text>
+                        <!-- Top arc: from right break point over the top to left break point -->
+                        <path d="M 185,128 A 90,90 0 1,0 15,128" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+                        <!-- Bottom arc: from left break point under the bottom to right break point -->
+                        <path d="M 15,128 A 90,90 0 0,0 185,128" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+                        <!-- Top decorative tick -->
+                        <line x1="100" y1="6" x2="100" y2="16" stroke="#1e293b" stroke-width="1.5"/>
+                        <!-- Bottom decorative tick -->
+                        <line x1="100" y1="184" x2="100" y2="194" stroke="#1e293b" stroke-width="1.5"/>
+                        <!-- "THE" -->
+                        <text x="100" y="72" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#1e293b" letter-spacing="8" font-weight="bold">THE</text>
+                        <!-- "LOCAL" -->
+                        <text x="102" y="116" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="bold" fill="#1e293b" letter-spacing="5">LOCAL</text>
+                        <!-- Left decorative line -->
+                        <line x1="15" y1="128" x2="62" y2="128" stroke="#1e293b" stroke-width="1"/>
+                        <!-- Right decorative line -->
+                        <line x1="138" y1="128" x2="185" y2="128" stroke="#1e293b" stroke-width="1"/>
+                        <!-- "on 50th" in script -->
+                        <text x="100" y="150" text-anchor="middle" font-family="'Dancing Script', cursive" font-size="24" fill="#1e293b">on 50th</text>
                     </svg>
                 </div>
                 <p class="text-sm sm:text-base text-slate-600">Daily Tip Calculator</p>
