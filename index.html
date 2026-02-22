@@ -62,7 +62,35 @@
     <div id="login-screen" class="max-w-md mx-auto mt-10 sm:mt-20 px-4">
         <div class="bg-white rounded-lg shadow-lg p-6 sm:p-8">
             <div class="text-center mb-6 sm:mb-8">
-                <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">The Local on 50th</h1>
+                <div class="mx-auto mb-4 w-28 h-28 sm:w-36 sm:h-36">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <!-- Outer circle -->
+                        <circle cx="100" cy="100" r="96" fill="none" stroke="#1e293b" stroke-width="3"/>
+                        <circle cx="100" cy="100" r="88" fill="none" stroke="#1e293b" stroke-width="1"/>
+                        <!-- Decorative dots along the top and bottom arcs -->
+                        <circle cx="100" cy="8" r="2.5" fill="#1e293b"/>
+                        <circle cx="100" cy="192" r="2.5" fill="#1e293b"/>
+                        <circle cx="8" cy="100" r="2.5" fill="#1e293b"/>
+                        <circle cx="192" cy="100" r="2.5" fill="#1e293b"/>
+                        <!-- Top curved text: "THE" -->
+                        <path id="topArc" d="M 40,100 A 60,60 0 0,1 160,100" fill="none"/>
+                        <text font-family="Georgia, 'Times New Roman', serif" font-size="14" fill="#1e293b" letter-spacing="6" font-weight="bold">
+                            <textPath href="#topArc" startOffset="50%" text-anchor="middle">THE</textPath>
+                        </text>
+                        <!-- Main text: "LOCAL" -->
+                        <text x="100" y="112" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="bold" fill="#1e293b" letter-spacing="4">LOCAL</text>
+                        <!-- Decorative lines around "on 50th" -->
+                        <line x1="38" y1="125" x2="78" y2="125" stroke="#1e293b" stroke-width="1"/>
+                        <line x1="122" y1="125" x2="162" y2="125" stroke="#1e293b" stroke-width="1"/>
+                        <!-- Subtitle: "on 50th" -->
+                        <text x="100" y="142" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="16" fill="#475569" font-style="italic">on 50th</text>
+                        <!-- Bottom curved text: "EST." -->
+                        <path id="bottomArc" d="M 55,120 A 60,60 0 0,0 145,120" fill="none"/>
+                        <text font-family="Georgia, 'Times New Roman', serif" font-size="11" fill="#475569" letter-spacing="3">
+                            <textPath href="#bottomArc" startOffset="50%" text-anchor="middle">RESTAURANT &amp; BAR</textPath>
+                        </text>
+                    </svg>
+                </div>
                 <p class="text-sm sm:text-base text-slate-600">Daily Tip Calculator</p>
             </div>
             <div>
