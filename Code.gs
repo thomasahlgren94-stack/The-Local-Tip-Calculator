@@ -80,11 +80,13 @@ var HISTORY_HEADERS = [
   'Date', 'Timestamp', 'Status', 'Shift Lead',
   'Total Sales', 'To-Go Sales', 'Tip-Out Sales',
   'CC Tips', 'Cash Tips', 'Auto Grat', 'Gift Card Tips',
-  'Total Tips', 'Manager Note', 'Employee Data'
+  'Total Tips', 'Manager Note', 'Employee Name', 'Role', 'Hours', 'Tips Earned'
 ];
 
 /**
  * Saves calculation data to the history spreadsheet.
+ * Each date produces a block of rows: summary + first employee on row 1,
+ * then one row per additional employee (columns N-Q only).
  * Overwrites if the same date already exists. Cleans up rows older than 30 days.
  */
 function saveCalcHistory(data) {
@@ -94,9 +96,10 @@ function saveCalcHistory(data) {
     sheet = ss.insertSheet('History');
   }
 
-  // Ensure header row exists
+  // Ensure header row exists (update from old 14-col format if needed)
   var firstCell = sheet.getRange(1, 1).getValue();
-  if (firstCell !== 'Date') {
+  var colNHeader = sheet.getRange(1, 14).getValue();
+  if (firstCell !== 'Date' || colNHeader === 'Employee Data') {
     sheet.getRange(1, 1, 1, HISTORY_HEADERS.length).setValues([HISTORY_HEADERS]);
     sheet.getRange(1, 1, 1, HISTORY_HEADERS.length)
       .setFontWeight('bold')
@@ -106,9 +109,41 @@ function saveCalcHistory(data) {
   }
 
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
-  var employeeJson = JSON.stringify(data.employees || []);
+  var emps = data.employees || [];
 
-  var row = [
+  // Delete existing block for this date (bottom-to-top)
+  var lastRow = sheet.getLastRow();
+  var insertRow = lastRow + 1; // default: append
+  if (lastRow >= 2) {
+    var allA = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    // Find the summary row for this date
+    var blockStart = -1;
+    for (var i = 0; i < allA.length; i++) {
+      if (String(allA[i][0]) === String(data.date)) {
+        blockStart = i;
+        break;
+      }
+    }
+    if (blockStart !== -1) {
+      // Find block end: consecutive rows after blockStart with blank column A
+      var blockEnd = blockStart;
+      for (var j = blockStart + 1; j < allA.length; j++) {
+        if (allA[j][0] === '' || allA[j][0] === null) {
+          blockEnd = j;
+        } else {
+          break;
+        }
+      }
+      insertRow = blockStart + 2; // sheet row (1-based, after header)
+      // Delete from bottom to top
+      for (var d = blockEnd; d >= blockStart; d--) {
+        sheet.deleteRow(d + 2);
+      }
+    }
+  }
+
+  // Build the block of rows
+  var summaryPrefix = [
     data.date,
     timestamp,
     'Not Sent',
@@ -121,34 +156,50 @@ function saveCalcHistory(data) {
     data.autoGrat || 0,
     data.giftCardTips || 0,
     data.totalTips || 0,
-    data.managerNote || '',
-    employeeJson
+    data.managerNote || ''
   ];
+  var blankPrefix = ['', '', '', '', '', '', '', '', '', '', '', '', ''];
 
-  // Look for existing row with the same date
-  var lastRow = sheet.getLastRow();
-  var targetRow = -1;
-  if (lastRow >= 2) {
-    var dates = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-    for (var i = 0; i < dates.length; i++) {
-      if (String(dates[i][0]) === String(data.date)) {
-        targetRow = i + 2;
-        break;
-      }
+  var rows = [];
+  if (emps.length === 0) {
+    rows.push(summaryPrefix.concat(['', '', '', '']));
+  } else {
+    // First row: summary + first employee
+    rows.push(summaryPrefix.concat([emps[0].name, emps[0].role, emps[0].hours || 0, emps[0].tips || 0]));
+    // Remaining employees: blank summary cols + employee data
+    for (var e = 1; e < emps.length; e++) {
+      rows.push(blankPrefix.concat([emps[e].name, emps[e].role, emps[e].hours || 0, emps[e].tips || 0]));
     }
   }
 
-  if (targetRow === -1) {
-    // Append new row
-    targetRow = lastRow + 1;
+  // Recalculate insertRow after deletions
+  var currentLast = sheet.getLastRow();
+  if (insertRow > currentLast + 1) {
+    insertRow = currentLast + 1;
   }
 
-  sheet.getRange(targetRow, 1, 1, row.length).setValues([row]);
+  // Write the block
+  sheet.getRange(insertRow, 1, rows.length, HISTORY_HEADERS.length).setValues(rows);
+
+  // Apply formatting to the new block
+  formatHistoryBlock(sheet, insertRow, rows.length);
 
   // Cleanup: delete rows older than 30 days
   cleanupOldHistory(sheet);
 
   return { success: true };
+}
+
+/**
+ * Applies number formatting to a history block.
+ */
+function formatHistoryBlock(sheet, startRow, numRows) {
+  // Columns E-L (5-12): dollar format
+  sheet.getRange(startRow, 5, numRows, 8).setNumberFormat('$#,##0.00');
+  // Column P (16): hours
+  sheet.getRange(startRow, 16, numRows, 1).setNumberFormat('0.00');
+  // Column Q (17): dollar format
+  sheet.getRange(startRow, 17, numRows, 1).setNumberFormat('$#,##0.00');
 }
 
 /**
@@ -175,6 +226,8 @@ function updateHistoryStatus(data) {
 
 /**
  * Deletes history rows where the date is older than 30 days.
+ * Handles multi-row blocks: identifies old dates first, then deletes
+ * all rows belonging to those dates (bottom-to-top).
  */
 function cleanupOldHistory(sheet) {
   var lastRow = sheet.getLastRow();
@@ -184,13 +237,38 @@ function cleanupOldHistory(sheet) {
   cutoff.setDate(cutoff.getDate() - 30);
   cutoff.setHours(0, 0, 0, 0);
 
-  var dates = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-  // Delete from bottom to top to preserve row indices
-  for (var i = dates.length - 1; i >= 0; i--) {
-    var rowDate = new Date(dates[i][0] + 'T12:00:00');
-    if (rowDate < cutoff) {
-      sheet.deleteRow(i + 2);
+  var colA = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+
+  // First pass: collect old dates
+  var oldDates = {};
+  for (var i = 0; i < colA.length; i++) {
+    var val = colA[i][0];
+    if (val !== '' && val !== null) {
+      var rowDate = new Date(String(val) + 'T12:00:00');
+      if (rowDate < cutoff) {
+        oldDates[String(val)] = true;
+      }
     }
+  }
+
+  if (Object.keys(oldDates).length === 0) return;
+
+  // Second pass: mark rows to delete (date rows + their continuation rows)
+  var currentDate = null;
+  var rowsToDelete = [];
+  for (var j = 0; j < colA.length; j++) {
+    var cellVal = colA[j][0];
+    if (cellVal !== '' && cellVal !== null) {
+      currentDate = String(cellVal);
+    }
+    if (currentDate && oldDates[currentDate]) {
+      rowsToDelete.push(j + 2); // sheet row number
+    }
+  }
+
+  // Delete bottom-to-top
+  for (var k = rowsToDelete.length - 1; k >= 0; k--) {
+    sheet.deleteRow(rowsToDelete[k]);
   }
 }
 
