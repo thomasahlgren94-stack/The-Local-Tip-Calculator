@@ -71,13 +71,147 @@ var DAY_NAMES      = ['Sunday', 'Monday', 'Tuesday', 'Wednesday',
                       'Thursday', 'Friday', 'Saturday'];
 
 // ═══════════════════════════════════════════════════════
+//  CALCULATION HISTORY
+// ═══════════════════════════════════════════════════════
+
+var HISTORY_SHEET_ID = '16LN5azYgimhKuY6bdgIPj-pAsbvUIJlANoR8cnxelS8';
+
+var HISTORY_HEADERS = [
+  'Date', 'Timestamp', 'Status', 'Shift Lead',
+  'Total Sales', 'To-Go Sales', 'Tip-Out Sales',
+  'CC Tips', 'Cash Tips', 'Auto Grat', 'Gift Card Tips',
+  'Total Tips', 'Manager Note', 'Employee Data'
+];
+
+/**
+ * Saves calculation data to the history spreadsheet.
+ * Overwrites if the same date already exists. Cleans up rows older than 30 days.
+ */
+function saveCalcHistory(data) {
+  var ss = SpreadsheetApp.openById(HISTORY_SHEET_ID);
+  var sheet = ss.getSheetByName('History');
+  if (!sheet) {
+    sheet = ss.insertSheet('History');
+  }
+
+  // Ensure header row exists
+  var firstCell = sheet.getRange(1, 1).getValue();
+  if (firstCell !== 'Date') {
+    sheet.getRange(1, 1, 1, HISTORY_HEADERS.length).setValues([HISTORY_HEADERS]);
+    sheet.getRange(1, 1, 1, HISTORY_HEADERS.length)
+      .setFontWeight('bold')
+      .setBackground('#4a5568')
+      .setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+  }
+
+  var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  var employeeJson = JSON.stringify(data.employees || []);
+
+  var row = [
+    data.date,
+    timestamp,
+    'Not Sent',
+    data.shiftLead || '',
+    data.totalSales || 0,
+    data.toGoSales || 0,
+    data.tipOutSales || 0,
+    data.ccTips || 0,
+    data.cashTips || 0,
+    data.autoGrat || 0,
+    data.giftCardTips || 0,
+    data.totalTips || 0,
+    data.managerNote || '',
+    employeeJson
+  ];
+
+  // Look for existing row with the same date
+  var lastRow = sheet.getLastRow();
+  var targetRow = -1;
+  if (lastRow >= 2) {
+    var dates = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < dates.length; i++) {
+      if (String(dates[i][0]) === String(data.date)) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+  }
+
+  if (targetRow === -1) {
+    // Append new row
+    targetRow = lastRow + 1;
+  }
+
+  sheet.getRange(targetRow, 1, 1, row.length).setValues([row]);
+
+  // Cleanup: delete rows older than 30 days
+  cleanupOldHistory(sheet);
+
+  return { success: true };
+}
+
+/**
+ * Updates the status column to "Sent" for a given date in the history sheet.
+ */
+function updateHistoryStatus(data) {
+  var ss = SpreadsheetApp.openById(HISTORY_SHEET_ID);
+  var sheet = ss.getSheetByName('History');
+  if (!sheet) return { success: false, error: 'History sheet not found' };
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { success: false, error: 'No history data' };
+
+  var dates = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  for (var i = 0; i < dates.length; i++) {
+    if (String(dates[i][0]) === String(data.date)) {
+      sheet.getRange(i + 2, 3).setValue('Sent');
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Date not found in history' };
+}
+
+/**
+ * Deletes history rows where the date is older than 30 days.
+ */
+function cleanupOldHistory(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  var cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  cutoff.setHours(0, 0, 0, 0);
+
+  var dates = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  // Delete from bottom to top to preserve row indices
+  for (var i = dates.length - 1; i >= 0; i--) {
+    var rowDate = new Date(dates[i][0] + 'T12:00:00');
+    if (rowDate < cutoff) {
+      sheet.deleteRow(i + 2);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 //  WEB-APP ENTRY POINTS
 // ═══════════════════════════════════════════════════════
 
 function doPost(e) {
   try {
-    var data   = JSON.parse(e.postData.contents);
-    var result = processTipData(data);
+    var data = JSON.parse(e.postData.contents);
+    var action = data.action || 'submitTips';
+    var result;
+
+    if (action === 'saveHistory') {
+      result = saveCalcHistory(data);
+    } else if (action === 'updateHistoryStatus') {
+      result = updateHistoryStatus(data);
+    } else {
+      result = processTipData(data);
+    }
+
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
