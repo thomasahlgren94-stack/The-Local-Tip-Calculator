@@ -398,11 +398,12 @@ function getWeekStart(date) {
   return d;
 }
 
-/** Sheet name: "M/D - M/D" (Monday – Sunday). */
+/** Sheet name: "Week of MM-DD-YYYY" (Monday of the week). */
 function formatSheetName(weekStart, weekEnd) {
-  var s = (weekStart.getMonth() + 1) + '/' + weekStart.getDate();
-  var e = (weekEnd.getMonth()   + 1) + '/' + weekEnd.getDate();
-  return s + ' - ' + e;
+  var mm = ('0' + (weekStart.getMonth() + 1)).slice(-2);
+  var dd = ('0' + weekStart.getDate()).slice(-2);
+  var yyyy = weekStart.getFullYear();
+  return 'Week of ' + mm + '-' + dd + '-' + yyyy;
 }
 
 /**
